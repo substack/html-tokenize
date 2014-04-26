@@ -2,6 +2,8 @@
 
 transform stream to tokenize html
 
+[![build status](https://secure.travis-ci.org/substack/html-tokenize.png)](http://travis-ci.org/substack/html-tokenize)
+
 # example
 
 ``` js
