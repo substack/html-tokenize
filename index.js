@@ -33,15 +33,16 @@ Tokenize.prototype._transform = function (buf, enc, next) {
         if (this._last.length > 8) this._last.shift();
         
         if (this.raw) {
-            var parts = this._testRaw(buf, i);
+            var parts = this._testRaw(buf, offset, i);
             if (parts) {
-                this.buffers = [ parts[0] ];
-                this._pushState('text');
-                this.buffers = [ parts[1] ];
+                this.raw = null;
                 this.state = 'open';
+                this.buffers = [ parts[1] ];
+                offset = i + 1;
+                this.push([ 'text', parts[0] ]);
             }
         }
-        if (this.state === 'text' && b === codes.lt) {
+        else if (this.state === 'text' && b === codes.lt) {
             if (i > 0 && i - offset > 0) {
                 this.buffers.push(buf.slice(offset, i));
             }
@@ -71,11 +72,9 @@ Tokenize.prototype._transform = function (buf, enc, next) {
                 this._pushState('open');
             }
         }
-        else {
-            
-        }
     }
-    if (offset < buf.length - 1) this.buffers.push(buf.slice(offset));
+    if (offset < buf.length) this.buffers.push(buf.slice(offset));
+    next();
 };
 
 Tokenize.prototype._flush = function (next) {
@@ -119,13 +118,13 @@ Tokenize.prototype._getTag = function () {
     }
 };
 
-Tokenize.prototype._testRaw = function (buf, index) {
+Tokenize.prototype._testRaw = function (buf, offset, index) {
     var raw = this.raw, last = this._last;
     if (last.length < raw.length) return;
     for (var i=raw.length-1, j=last.length-1; i > 0 && j > 0; i--, j--) {
         if (raw[i] !== last[j]) return;
     }
-    this.buffers.push(buf.slice(0, index + 1));
+    this.buffers.push(buf.slice(offset, index + 1));
     var buf = Buffer.concat(this.buffers);
     var k = buf.length - raw.length;
     return [ buf.slice(0, k), buf.slice(k) ];
