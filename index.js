@@ -11,8 +11,11 @@ var codes = {
     dquote: '"'.charCodeAt(0),
     squote: "'".charCodeAt(0)
 };
+
 var strings = {
-    endScript: Buffer('</script')
+    endScript: Buffer('</script'),
+    endComment: Buffer('-->'),
+    comment: Buffer('<!--')
 };
 
 function Tokenize () {
@@ -35,11 +38,20 @@ Tokenize.prototype._transform = function (buf, enc, next) {
         if (this.raw) {
             var parts = this._testRaw(buf, offset, i);
             if (parts) {
-                this.raw = null;
-                this.state = 'open';
-                this.buffers = [ parts[1] ];
-                offset = i + 1;
                 this.push([ 'text', parts[0] ]);
+                
+                if (this.raw === strings.endComment) {
+                    this.state = 'text';
+                    this.buffers = [];
+                    this.push([ 'close', parts[1] ]);
+                }
+                else {
+                    this.state = 'open';
+                    this.buffers = [ parts[1] ];
+                }
+                
+                this.raw = null;
+                offset = i + 1;
             }
         }
         else if (this.state === 'text' && b === codes.lt) {
@@ -71,6 +83,13 @@ Tokenize.prototype._transform = function (buf, enc, next) {
                 if (tag === 'script') this.raw = strings.endScript;
                 this._pushState('open');
             }
+        }
+        else if (this.state === 'open' && compare(this._last, strings.comment)) {
+            this.buffers.push(buf.slice(offset, i + 1));
+            offset = i + 1;
+            this.state = 'text';
+            this.raw = strings.endComment;
+            this._pushState('open');
         }
     }
     if (offset < buf.length) this.buffers.push(buf.slice(offset));
@@ -109,7 +128,7 @@ Tokenize.prototype._getTag = function () {
         for (var k = 0; k < buf.length; k++) {
             if (offset === 0 && k === 0) continue;
             var c = String.fromCharCode(buf[k]);
-            if (/\W/.test(c)) {
+            if (/[^\w-!]/.test(c)) {
                 return tag.toLowerCase();
             }
             else tag += c;
@@ -120,12 +139,18 @@ Tokenize.prototype._getTag = function () {
 
 Tokenize.prototype._testRaw = function (buf, offset, index) {
     var raw = this.raw, last = this._last;
-    if (last.length < raw.length) return;
-    for (var i=raw.length-1, j=last.length-1; i > 0 && j > 0; i--, j--) {
-        if (raw[i] !== last[j]) return;
-    }
+    if (!compare(last, raw)) return;
+    
     this.buffers.push(buf.slice(offset, index + 1));
     var buf = Buffer.concat(this.buffers);
     var k = buf.length - raw.length;
     return [ buf.slice(0, k), buf.slice(k) ];
 };
+
+function compare (a, b) {
+    if (a.length < b.length) return false;
+    for (var i=a.length-1, j=b.length-1; i > 0 && j > 0; i--, j--) {
+        if (a[i] !== b[j]) return false;
+    }
+    return true;
+}
