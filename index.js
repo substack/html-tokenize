@@ -14,8 +14,10 @@ var codes = {
 
 var strings = {
     endScript: Buffer('</script'),
+    comment: Buffer('<!--'),
     endComment: Buffer('-->'),
-    comment: Buffer('<!--')
+    cdata: Buffer('<![CDATA['),
+    endCdata: Buffer(']]>')
 };
 
 function Tokenize () {
@@ -33,14 +35,15 @@ Tokenize.prototype._transform = function (buf, enc, next) {
     for (var i = 0; i < buf.length; i++) {
         var b = buf[i];
         this._last.push(b);
-        if (this._last.length > 8) this._last.shift();
+        if (this._last.length > 9) this._last.shift();
         
         if (this.raw) {
             var parts = this._testRaw(buf, offset, i);
             if (parts) {
                 this.push([ 'text', parts[0] ]);
                 
-                if (this.raw === strings.endComment) {
+                if (this.raw === strings.endComment
+                || this.raw === strings.endCdata) {
                     this.state = 'text';
                     this.buffers = [];
                     this.push([ 'close', parts[1] ]);
@@ -91,6 +94,13 @@ Tokenize.prototype._transform = function (buf, enc, next) {
             this.raw = strings.endComment;
             this._pushState('open');
         }
+        else if (this.state === 'open' && compare(this._last, strings.cdata)) {
+            this.buffers.push(buf.slice(offset, i + 1));
+            offset = i + 1;
+            this.state = 'text';
+            this.raw = strings.endCdata;
+            this._pushState('open');
+        }
     }
     if (offset < buf.length) this.buffers.push(buf.slice(offset));
     next();
@@ -128,7 +138,7 @@ Tokenize.prototype._getTag = function () {
         for (var k = 0; k < buf.length; k++) {
             if (offset === 0 && k === 0) continue;
             var c = String.fromCharCode(buf[k]);
-            if (/[^\w-!]/.test(c)) {
+            if (/[^\w-!\[\]]/.test(c)) {
                 return tag.toLowerCase();
             }
             else tag += c;
@@ -150,7 +160,12 @@ Tokenize.prototype._testRaw = function (buf, offset, index) {
 function compare (a, b) {
     if (a.length < b.length) return false;
     for (var i=a.length-1, j=b.length-1; i > 0 && j > 0; i--, j--) {
-        if (a[i] !== b[j]) return false;
+        if (lower(a[i]) !== lower(b[j])) return false;
     }
     return true;
+}
+
+function lower (n) {
+    if (n >= 65 && n <= 90) return n + 32;
+    return n;
 }
