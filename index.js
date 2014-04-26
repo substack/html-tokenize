@@ -31,20 +31,16 @@ Tokenize.prototype._transform = function (buf, enc, next) {
             this._pushState('text');
         }
         else if (this.state === 'open' && b === codes.gt) {
-            if (i > 0) this.buffers.push(buf.slice(offset, i));
-            offset = i;
+            if (i > 0) this.buffers.push(buf.slice(offset, i + 1));
+            offset = i + 1;
             this.state = 'text';
             
             if (this._getChar(1) === codes.slash) {
-                this._pushState('closing');
+                this._pushState('close');
             }
             else {
                 this._pushState('open');
             }
-            
-            this.buffers.push(buf.slice(offset, offset + 1));
-            offset ++;
-            this._pushState('close');
         }
         else {
             
