@@ -1,0 +1,34 @@
+{
+  "name": "html-tokenize",
+  "version": "1.0.0",
+  "description": "transform stream to tokenize html",
+  "main": "index.js",
+  "dependencies": {
+    "inherits": "~2.0.1",
+    "readable-stream": "~1.0.27-1"
+  },
+  "devDependencies": {
+    "tape": "~2.12.1",
+    "through2": "~0.4.1"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/html-tokenize.git"
+  },
+  "homepage": "https://github.com/substack/html-tokenize",
+  "keywords": [
+    "html",
+    "parser",
+    "tokenize",
+    "stream"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT"
+}
