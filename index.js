@@ -11,20 +11,36 @@ var codes = {
     dquote: '"'.charCodeAt(0),
     squote: "'".charCodeAt(0)
 };
+var strings = {
+    endScript: Buffer('</script')
+};
 
 function Tokenize () {
     if (!(this instanceof Tokenize)) return new Tokenize;
     Transform.call(this, { objectMode: true });
     this.state = 'text';
     this.quoteState = null;
+    this.raw = null;
     this.buffers = [];
+    this._last = [];
 }
 
 Tokenize.prototype._transform = function (buf, enc, next) {
-    var parts = [];
     var offset = 0;
     for (var i = 0; i < buf.length; i++) {
         var b = buf[i];
+        this._last.push(b);
+        if (this._last.length > 8) this._last.shift();
+        
+        if (this.raw) {
+            var parts = this._testRaw(buf, i);
+            if (parts) {
+                this.buffers = [ parts[0] ];
+                this._pushState('text');
+                this.buffers = [ parts[1] ];
+                this.state = 'open';
+            }
+        }
         if (this.state === 'text' && b === codes.lt) {
             if (i > 0 && i - offset > 0) {
                 this.buffers.push(buf.slice(offset, i));
@@ -50,6 +66,8 @@ Tokenize.prototype._transform = function (buf, enc, next) {
                 this._pushState('close');
             }
             else {
+                var tag = this._getTag();
+                if (tag === 'script') this.raw = strings.endScript;
                 this._pushState('open');
             }
         }
@@ -82,4 +100,33 @@ Tokenize.prototype._getChar = function (i) {
         }
         offset += buf;
     }
+};
+
+Tokenize.prototype._getTag = function () {
+    var offset = 0;
+    var tag = '';
+    for (var j = 0; j < this.buffers.length; j++) {
+        var buf = this.buffers[j];
+        for (var k = 0; k < buf.length; k++) {
+            if (offset === 0 && k === 0) continue;
+            var c = String.fromCharCode(buf[k]);
+            if (/\W/.test(c)) {
+                return tag.toLowerCase();
+            }
+            else tag += c;
+        }
+        offset += buf.length;
+    }
+};
+
+Tokenize.prototype._testRaw = function (buf, index) {
+    var raw = this.raw, last = this._last;
+    if (last.length < raw.length) return;
+    for (var i=raw.length-1, j=last.length-1; i > 0 && j > 0; i--, j--) {
+        if (raw[i] !== last[j]) return;
+    }
+    this.buffers.push(buf.slice(0, index + 1));
+    var buf = Buffer.concat(this.buffers);
+    var k = buf.length - raw.length;
+    return [ buf.slice(0, k), buf.slice(k) ];
 };
