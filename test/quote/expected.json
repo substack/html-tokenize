@@ -1,0 +1,5 @@
+[[ "open", "<div>" ]
+,[ "text", "\n  " ]
+,[ "open", "<input type=\"text\" value=\">>\">" ]
+,[ "text", "\n" ]
+,[ "close", "</div>" ]]
