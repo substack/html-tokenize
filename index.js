@@ -7,13 +7,16 @@ module.exports = Tokenize;
 var codes = {
     lt: '<'.charCodeAt(0),
     gt: '>'.charCodeAt(0),
-    slash: '/'.charCodeAt(0)
+    slash: '/'.charCodeAt(0),
+    dquote: '"'.charCodeAt(0),
+    squote: "'".charCodeAt(0)
 };
 
 function Tokenize () {
     if (!(this instanceof Tokenize)) return new Tokenize;
     Transform.call(this, { objectMode: true });
     this.state = 'text';
+    this.quoteState = null;
     this.buffers = [];
 }
 
@@ -30,7 +33,15 @@ Tokenize.prototype._transform = function (buf, enc, next) {
             this.state = 'open';
             this._pushState('text');
         }
-        else if (this.state === 'open' && b === codes.gt) {
+        else if (this.state === 'open' && b === codes.dquote) {
+            if (this.quoteState) this.quoteState = null;
+            else this.quoteState = 'double';
+        }
+        else if (this.state === 'open' && b === codes.squote) {
+            if (this.quoteState) this.quoteState = null;
+            else this.quoteState = 'single';
+        }
+        else if (this.state === 'open' && b === codes.gt && !this.quoteState) {
             if (i > 0) this.buffers.push(buf.slice(offset, i + 1));
             offset = i + 1;
             this.state = 'text';
