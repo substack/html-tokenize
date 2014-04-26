@@ -23,7 +23,9 @@ Tokenize.prototype._transform = function (buf, enc, next) {
     for (var i = 0; i < buf.length; i++) {
         var b = buf[i];
         if (this.state === 'text' && b === codes.lt) {
-            if (i > 0) this.buffers.push(buf.slice(offset, i));
+            if (i > 0 && i - offset > 0) {
+                this.buffers.push(buf.slice(offset, i));
+            }
             offset = i;
             this.state = 'open';
             this._pushState('text');
