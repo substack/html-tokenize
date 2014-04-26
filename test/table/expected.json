@@ -22,4 +22,5 @@
 ,[ "close", "</td>" ]
 ,[ "close", "</tr>" ]
 ,[ "text", "\n" ]
-,[ "close", "</table>" ]]
+,[ "close", "</table>" ]
+,[ "text", "\n" ]]
