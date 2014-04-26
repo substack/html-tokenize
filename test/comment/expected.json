@@ -1,4 +1,6 @@
-[[ "open", "<!-- beep boop -->" ]
+[[ "open", "<!--" ]
+,[ "text", " beep boop " ]
+,[ "close", "-->" ]
 ,[ "text", "\n" ]
 ,[ "open", "<table cols=3>" ]
 ,[ "text", "\n  " ]
