@@ -65,11 +65,19 @@ Tokenize.prototype._transform = function (buf, enc, next) {
             this.state = 'open';
             this._pushState('text');
         }
-        else if (this.state === 'open' && b === codes.dquote) {
+        else if (
+            this.state === 'open' &&
+            (!this.quoteState || this.quoteState === 'double') &&
+            b === codes.dquote
+        ) {
             if (this.quoteState) this.quoteState = null;
             else this.quoteState = 'double';
         }
-        else if (this.state === 'open' && b === codes.squote) {
+        else if (
+            this.state === 'open' &&
+            (!this.quoteState || this.quoteState === 'single') &&
+            b === codes.squote
+        ) {
             if (this.quoteState) this.quoteState = null;
             else this.quoteState = 'single';
         }
