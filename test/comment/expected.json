@@ -27,4 +27,8 @@
 ,[ "close", "</tr>" ]
 ,[ "text", "\n" ]
 ,[ "close", "</table>" ]
+,[ "text", "\n" ]
+,[ "open", "<div class=\"col!---t\">" ]
+,[ "text", "\n" ]
+,[ "close", "</div>" ]
 ,[ "text", "\n" ]]
