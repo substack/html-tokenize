@@ -167,7 +167,7 @@ Tokenize.prototype._testRaw = function (buf, offset, index) {
 
 function compare (a, b) {
     if (a.length < b.length) return false;
-    for (var i=a.length-1, j=b.length-1; i > 0 && j > 0; i--, j--) {
+    for (var i=a.length-1, j=b.length-1; i >= 0 && j >= 0; i--, j--) {
         if (lower(a[i]) !== lower(b[j])) return false;
     }
     return true;
