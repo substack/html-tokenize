@@ -87,12 +87,30 @@ The types of names are:
 cdata, comments, and scripts all use `'open'` with their contents appearing in
 subsequent `'text'` rows.
 
+# usage
+
+There is an html-tokenize command too.
+
+```
+usage: html-tokenize {FILE}
+
+  Tokenize FILE into newline-separated json arrays for each tag.
+  If FILE is not specified, use stdin.
+
+```
+
 # install
 
-With [npm](https://npmjs.org) do:
+With [npm](https://npmjs.org), to get the library do:
 
 ```
 npm install html-tokenize
+```
+
+or to get the command do:
+
+```
+npm install -g html-tokenize
 ```
 
 # license
