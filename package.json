@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "transform stream to tokenize html",
   "main": "index.js",
+  "bin": {
+    "html-tokenize": "bin/cmd.js"
+  },
   "dependencies": {
     "inherits": "~2.0.1",
-    "readable-stream": "~1.0.27-1"
+    "readable-stream": "~1.0.27-1",
+    "minimist": "~0.0.8"
   },
   "devDependencies": {
     "tape": "~2.12.1",
