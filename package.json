@@ -9,7 +9,8 @@
   "dependencies": {
     "inherits": "~2.0.1",
     "readable-stream": "~1.0.27-1",
-    "minimist": "~0.0.8"
+    "minimist": "~0.0.8",
+    "through2": "~0.4.1"
   },
   "devDependencies": {
     "tape": "~2.12.1",
