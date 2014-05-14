@@ -12,6 +12,7 @@ var codes = {
     squote: "'".charCodeAt(0)
 };
 
+
 var strings = {
     endScript: Buffer('</script'),
     comment: Buffer('<!--'),
@@ -20,102 +21,115 @@ var strings = {
     endCdata: Buffer(']]>')
 };
 
+
 function Tokenize () {
     if (!(this instanceof Tokenize)) return new Tokenize;
     Transform.call(this, { objectMode: true });
-    this.state = 'text';
-    this.quoteState = null;
+    this._state = this._state_text;
     this.raw = null;
     this.buffers = [];
     this._last = [];
 }
 
+
 Tokenize.prototype._transform = function (buf, enc, next) {
-    var offset = 0;
-    for (var i = 0; i < buf.length; i++) {
-        var b = buf[i];
-        this._last.push(b);
+    this.offset = 0;
+    this.buf = buf;
+    for (this.i = 0; this.i < this.buf.length; this.i++) {
+        this.b = this.buf[this.i];
+        this._last.push(this.b);
         if (this._last.length > 9) this._last.shift();
-        
+
         if (this.raw) {
-            var parts = this._testRaw(buf, offset, i);
+            var parts = this._testRaw(this.buf, this.offset, this.i);
             if (parts) {
                 this.push([ 'text', parts[0] ]);
-                
+
                 if (this.raw === strings.endComment
                 || this.raw === strings.endCdata) {
-                    this.state = 'text';
+                    this._state = this._state_text;
                     this.buffers = [];
                     this.push([ 'close', parts[1] ]);
                 }
                 else {
-                    this.state = 'open';
+                    this._state = this._state_open;
                     this.buffers = [ parts[1] ];
                 }
-                
+
                 this.raw = null;
-                offset = i + 1;
+                this.offset = this.i + 1;
             }
-        }
-        else if (this.state === 'text' && b === codes.lt) {
-            if (i > 0 && i - offset > 0) {
-                this.buffers.push(buf.slice(offset, i));
-            }
-            offset = i;
-            this.state = 'open';
-            this._pushState('text');
-        }
-        else if (
-            this.state === 'open' &&
-            (!this.quoteState || this.quoteState === 'double') &&
-            b === codes.dquote
-        ) {
-            if (this.quoteState) this.quoteState = null;
-            else this.quoteState = 'double';
-        }
-        else if (
-            this.state === 'open' &&
-            (!this.quoteState || this.quoteState === 'single') &&
-            b === codes.squote
-        ) {
-            if (this.quoteState) this.quoteState = null;
-            else this.quoteState = 'single';
-        }
-        else if (this.state === 'open' && b === codes.gt && !this.quoteState) {
-            if (i > 0) this.buffers.push(buf.slice(offset, i + 1));
-            offset = i + 1;
-            this.state = 'text';
-            
-            if (this._getChar(1) === codes.slash) {
-                this._pushState('close');
-            }
-            else {
-                var tag = this._getTag();
-                if (tag === 'script') this.raw = strings.endScript;
-                this._pushState('open');
-            }
-        }
-        else if (this.state === 'open' && compare(this._last, strings.comment)) {
-            this.buffers.push(buf.slice(offset, i + 1));
-            offset = i + 1;
-            this.state = 'text';
-            this.raw = strings.endComment;
-            this._pushState('open');
-        }
-        else if (this.state === 'open' && compare(this._last, strings.cdata)) {
-            this.buffers.push(buf.slice(offset, i + 1));
-            offset = i + 1;
-            this.state = 'text';
-            this.raw = strings.endCdata;
-            this._pushState('open');
+        } else {
+          this._state();
         }
     }
-    if (offset < buf.length) this.buffers.push(buf.slice(offset));
+    if (this.offset < this.buf.length) this.buffers.push(this.buf.slice(this.offset));
     next();
 };
 
+
+Tokenize.prototype._state_text = function () {
+  if (this.b === codes.lt) {
+      if (this.i > 0 && this.i - this.offset > 0) {
+          this.buffers.push(this.buf.slice(this.offset, this.i));
+      }
+      this.offset = this.i;
+      this._state = this._state_open;
+      this._pushState('text');
+  }
+}
+
+
+Tokenize.prototype._state_single_quote = function () {
+  if (this.b === codes.squote) {
+      this._state = this._state_open;
+  }
+}
+
+
+Tokenize.prototype._state_double_quote = function () {
+  if (this.b === codes.dquote) {
+      this._state = this._state_open;
+  }
+}
+
+
+Tokenize.prototype._state_open = function () {
+  if (this.b === codes.dquote) {
+      this._state = this._state_double_quote;
+  } else if (this.b === codes.squote) {
+      this._state = this._state_single_quote;
+  } else if (this.b === codes.gt) {
+      if (this.i > 0) this.buffers.push(this.buf.slice(this.offset, this.i + 1));
+      this.offset = this.i + 1;
+      this._state = this._state_text;
+
+      if (this._getChar(1) === codes.slash) {
+          this._pushState('close');
+      } else {
+          if ( this._getTag() === 'script') this.raw = strings.endScript;
+          this._pushState('open');
+      }
+  } else if (compare(this._last, strings.comment)) {
+      this.buffers.push(this.buf.slice(this.offset, this.i + 1));
+      this.offset = this.i + 1;
+      this._state = this._state_text;
+      this.raw = strings.endComment;
+      this._pushState('open');
+  } else if (compare(this._last, strings.cdata)) {
+      this.buffers.push(this.buf.slice(this.offset, this.i + 1));
+      this.offset = this.i + 1;
+      this._state = this._state_text;
+      this.raw = strings.endCdata;
+      this._pushState('open');
+  }
+}
+
+
 Tokenize.prototype._flush = function (next) {
-    if (this.state === 'text') this._pushState('text');
+    if (this._state === this._state_text) {
+      this._pushState('text');
+    }
     this.push(null);
     next();
 };
@@ -158,7 +172,7 @@ Tokenize.prototype._getTag = function () {
 Tokenize.prototype._testRaw = function (buf, offset, index) {
     var raw = this.raw, last = this._last;
     if (!compare(last, raw)) return;
-    
+
     this.buffers.push(buf.slice(offset, index + 1));
     var buf = Buffer.concat(this.buffers);
     var k = buf.length - raw.length;
