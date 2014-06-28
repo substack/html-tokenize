@@ -22,7 +22,8 @@ var strings = {
 
 function Tokenize () {
     if (!(this instanceof Tokenize)) return new Tokenize;
-    Transform.call(this, { objectMode: true });
+    Transform.call(this);
+    this._readableState.objectMode = true;
     this.state = 'text';
     this.quoteState = null;
     this.raw = null;
