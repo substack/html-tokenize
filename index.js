@@ -58,7 +58,8 @@ Tokenize.prototype._transform = function (buf, enc, next) {
                 offset = i + 1;
             }
         }
-        else if (this.state === 'text' && b === codes.lt) {
+        else if (this.state === 'text' && b === codes.lt
+        && !/\s+/.test(String.fromCharCode(buf[i+1]))) {
             if (i > 0 && i - offset > 0) {
                 this.buffers.push(buf.slice(offset, i));
             }
