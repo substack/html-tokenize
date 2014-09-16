@@ -32,8 +32,18 @@ function Tokenize () {
 }
 
 Tokenize.prototype._transform = function (buf, enc, next) {
+    var i = 0;
     var offset = 0;
-    for (var i = 0; i < buf.length; i++) {
+    
+    if (this._prev) {
+        buf = Buffer.concat([ this._prev, buf ]);
+        i = this._prev.length - 1;
+        offset = this._offset;
+        this._prev = null;
+        this._offset = 0;
+    }
+    
+    for (; i < buf.length; i++) {
         var b = buf[i];
         this._last.push(b);
         if (this._last.length > 9) this._last.shift();
@@ -57,6 +67,12 @@ Tokenize.prototype._transform = function (buf, enc, next) {
                 this.raw = null;
                 offset = i + 1;
             }
+        }
+        else if (this.state === 'text' && b === codes.lt
+        && i === buf.length - 1) {
+            this._prev = buf;
+            this._offset = offset;
+            return next();
         }
         else if (this.state === 'text' && b === codes.lt
         && !/\s+/.test(String.fromCharCode(buf[i+1]))) {
