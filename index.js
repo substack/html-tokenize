@@ -9,7 +9,8 @@ var codes = {
     gt: '>'.charCodeAt(0),
     slash: '/'.charCodeAt(0),
     dquote: '"'.charCodeAt(0),
-    squote: "'".charCodeAt(0)
+    squote: "'".charCodeAt(0),
+    equal: '='.charCodeAt(0)
 };
 
 var strings = {
@@ -26,6 +27,7 @@ function Tokenize () {
     this._readableState.objectMode = true;
     this.state = 'text';
     this.quoteState = null;
+    this.attrValueState = false;
     this.raw = null;
     this.buffers = [];
     this._last = [];
@@ -81,14 +83,25 @@ Tokenize.prototype._transform = function (buf, enc, next) {
             }
             offset = i;
             this.state = 'open';
+            this.attrValueState = false;
             this._pushState('text');
+        }
+        else if (
+            this.state === 'open' &&
+            !this.quoteState && b === codes.equal
+        ) {
+            this.attrValueState = true;
         }
         else if (
             this.state === 'open' &&
             (!this.quoteState || this.quoteState === 'double') &&
             b === codes.dquote
         ) {
-            if (this.quoteState) this.quoteState = null;
+            if (!this.attrValueState) {}
+            else if (this.quoteState) {
+                this.quoteState = null;
+                this.attrValueState = false;
+            }
             else this.quoteState = 'double';
         }
         else if (
@@ -96,7 +109,11 @@ Tokenize.prototype._transform = function (buf, enc, next) {
             (!this.quoteState || this.quoteState === 'single') &&
             b === codes.squote
         ) {
-            if (this.quoteState) this.quoteState = null;
+            if (!this.attrValueState) {}
+            else if (this.quoteState) {
+                this.quoteState = null;
+                this.attrValueState = false;
+            }
             else this.quoteState = 'single';
         }
         else if (this.state === 'open' && b === codes.gt && !this.quoteState) {
