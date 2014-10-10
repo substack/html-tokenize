@@ -117,7 +117,7 @@ Tokenize.prototype._transform = function (buf, enc, next) {
             else this.quoteState = 'single';
         }
         else if (this.state === 'open' && b === codes.gt && !this.quoteState) {
-            if (i > 0) this.buffers.push(buf.slice(offset, i + 1));
+            this.buffers.push(buf.slice(offset, i + 1));
             offset = i + 1;
             this.state = 'text';
             
