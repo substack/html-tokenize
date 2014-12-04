@@ -15,6 +15,7 @@ var codes = {
 
 var strings = {
     endScript: Buffer('</script'),
+    endStyle: Buffer('</style'),
     comment: Buffer('<!--'),
     endComment: Buffer('-->'),
     cdata: Buffer('<![CDATA['),
@@ -127,6 +128,7 @@ Tokenize.prototype._transform = function (buf, enc, next) {
             else {
                 var tag = this._getTag();
                 if (tag === 'script') this.raw = strings.endScript;
+                if (tag === 'style') this.raw = strings.endStyle;
                 this._pushState('open');
             }
         }
