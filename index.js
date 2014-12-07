@@ -23,13 +23,20 @@ var strings = {
     endCdata: Buffer(']]>')
 };
 
+var states = {
+    'TagNameState': 1,
+    'AttributeNameState': 2,
+    'BeforeAttributeValueState': 3,
+    'AttributeValueState':4
+}
+
 function Tokenize () {
     if (!(this instanceof Tokenize)) return new Tokenize;
     Transform.call(this);
     this._readableState.objectMode = true;
     this.state = 'text';
+    this.tagState = null;
     this.quoteState = null;
-    this.attrValueState = false;
     this.raw = null;
     this.buffers = [];
     this._last = [];
@@ -51,7 +58,7 @@ Tokenize.prototype._transform = function (buf, enc, next) {
         var b = buf[i];
         this._last.push(b);
         if (this._last.length > 9) this._last.shift();
-        
+        // detect end of raw character mode (comment, script,..)
         if (this.raw) {
             var parts = this._testRaw(buf, offset, i);
             if (parts) {
@@ -72,57 +79,81 @@ Tokenize.prototype._transform = function (buf, enc, next) {
                 offset = i + 1;
             }
         }
+        // ask for more data if last byte is '<' 
         else if (this.state === 'text' && b === codes.lt
         && i === buf.length - 1) {
             this._prev = buf;
             this._offset = offset;
             return next();
         }
+        // detect a tag opening
         else if (this.state === 'text' && b === codes.lt
-        && !/\s+/.test(String.fromCharCode(buf[i+1]))) {
+        && !isWhiteSpace(buf[i+1])) {
             if (i > 0 && i - offset > 0) {
                 this.buffers.push(buf.slice(offset, i));
             }
             offset = i;
             this.state = 'open';
-            this.attrValueState = false;
+            this.tagState = states.TagNameState;
             this._pushState('text');
         }
         else if (
-            this.state === 'open' &&
-            !this.quoteState && b === codes.equal
+            this.tagState === states.TagNameState &&
+            isWhiteSpace(b)
         ) {
-            this.attrValueState = true;
+            this.tagState = states.AttributeNameState
         }
         else if (
-            this.state === 'open' &&
-            (!this.quoteState || this.quoteState === 'double') &&
+            this.tagState === states.AttributeNameState &&
+            b === codes.equal
+        ) {
+            this.tagState = states.BeforeAttributeValueState
+        }
+        else if (
+            this.tagState === states.BeforeAttributeValueState &&
+            isWhiteSpace(b)
+        ) {}
+        else if (
+            this.tagState === states.BeforeAttributeValueState
+            && b !== codes.gt
+        ) {
+            this.tagState = states.AttributeValueState;
+            if (b === codes.dquote) {
+                this.quoteState = 'double';
+            } else if (b === codes.squote) {
+                this.quoteState = 'single';
+            } else {
+                this.quoteState = null;
+            }
+        }
+        else if (
+            this.tagState === states.AttributeValueState &&
+            !this.quoteState &&
+            isWhiteSpace(b)
+        ) {
+            this.tagState = states.AttributeNameState;
+        }
+        else if (
+            this.tagState === states.AttributeValueState &&
+            this.quoteState === 'double' &&
             b === codes.dquote
         ) {
-            if (!this.attrValueState) {}
-            else if (this.quoteState) {
-                this.quoteState = null;
-                this.attrValueState = false;
-            }
-            else this.quoteState = 'double';
+            this.quoteState = null;
+            this.tagState = states.AttributeNameState;
         }
         else if (
-            this.state === 'open' &&
-            (!this.quoteState || this.quoteState === 'single') &&
+            this.tagState === states.AttributeValueState &&
+            this.quoteState === 'single' &&
             b === codes.squote
         ) {
-            if (!this.attrValueState) {}
-            else if (this.quoteState) {
-                this.quoteState = null;
-                this.attrValueState = false;
-            }
-            else this.quoteState = 'single';
+            this.quoteState = null;
+            this.tagState = states.AttributeNameState;
         }
         else if (this.state === 'open' && b === codes.gt && !this.quoteState) {
             this.buffers.push(buf.slice(offset, i + 1));
             offset = i + 1;
             this.state = 'text';
-            
+            this.tagState = null;
             if (this._getChar(1) === codes.slash) {
                 this._pushState('close');
             }
@@ -215,4 +246,8 @@ function compare (a, b) {
 function lower (n) {
     if (n >= 65 && n <= 90) return n + 32;
     return n;
+}
+
+function isWhiteSpace(b) {
+  return b === 0x20 || b === 0x09 || b === 0x0A || b === 0x0C || b === 0x0D;
 }
