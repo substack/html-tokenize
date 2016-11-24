@@ -1,3 +1,4 @@
+var bufferFrom = require('buffer-from');
 var sax = require('sax');
 sax.ENTITIES = {};
 var through = require('through');
@@ -13,7 +14,7 @@ module.exports = function (opts) {
     var bufs = buffers();
     var tokenize = through(
         function (buf) {
-            if (typeof buf === 'string') buf = Buffer(buf);
+            if (typeof buf === 'string') buf = bufferFrom(buf);
             bufs.push(buf);
             return parser.write(buf);
         },
@@ -72,7 +73,7 @@ module.exports = function (opts) {
             var str = buf.toString('utf8');
             var m = /<[^\s>]+\s*/.exec(str);
             
-            tokenize.queue([ 'tag-begin', Buffer(m[0]), arg ]);
+            tokenize.queue([ 'tag-begin', bufferFrom(m[0]), arg ]);
             var offset = m[0].length;
             
             attrs.forEach(function (attr) {
@@ -82,17 +83,17 @@ module.exports = function (opts) {
                 var wm = /^\s+/.exec(s);
                 
                 if (wm) {
-                    tokenize.queue([ 'tag-space', Buffer(wm[0]) ]);
-                    var abuf = Buffer(s.slice(wm[0].length));
+                    tokenize.queue([ 'tag-space', bufferFrom(wm[0]) ]);
+                    var abuf = bufferFrom(s.slice(wm[0].length));
                     tokenize.queue([ 'attribute', abuf, attr[0] ]);
                 }
                 else {
-                    tokenize.queue([ 'attribute', Buffer(s), attr[0] ]);
+                    tokenize.queue([ 'attribute', bufferFrom(s), attr[0] ]);
                 }
                 offset = attrIndex;
             });
             
-            tokenize.queue([ 'tag-end', Buffer(str.slice(offset)) ]);
+            tokenize.queue([ 'tag-end', bufferFrom(str.slice(offset)) ]);
             attrs = [];
         }
         else tokenize.queue([ evname, buf, arg ]);
