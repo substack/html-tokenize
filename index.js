@@ -1,3 +1,4 @@
+var bufferFrom = require('buffer-from')
 var Transform = require('readable-stream').Transform;
 var inherits = require('inherits');
 
@@ -14,13 +15,13 @@ var codes = {
 };
 
 var strings = {
-    endScript: Buffer('</script'),
-    endStyle: Buffer('</style'),
-    endTitle: Buffer('</title'),
-    comment: Buffer('<!--'),
-    endComment: Buffer('-->'),
-    cdata: Buffer('<![CDATA['),
-    endCdata: Buffer(']]>')
+    endScript: bufferFrom('</script'),
+    endStyle: bufferFrom('</style'),
+    endTitle: bufferFrom('</title'),
+    comment: bufferFrom('<!--'),
+    endComment: bufferFrom('-->'),
+    cdata: bufferFrom('<![CDATA['),
+    endCdata: bufferFrom(']]>')
 };
 
 var states = {
