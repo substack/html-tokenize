@@ -9,7 +9,7 @@
   "dependencies": {
     "buffer-from": "~0.1.1",
     "inherits": "~2.0.1",
-    "minimist": "~0.0.8",
+    "minimist": "~1.2.5",
     "readable-stream": "~1.0.27-1",
     "through2": "~0.4.1"
   },
