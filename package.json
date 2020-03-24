@@ -1,6 +1,6 @@
 {
   "name": "html-tokenize",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "transform stream to tokenize html",
   "main": "index.js",
   "bin": {
